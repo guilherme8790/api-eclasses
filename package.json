@@ -1,0 +1,13 @@
+{
+  "name": "e-clas-api",
+  "version": "1.0.0",
+  "description": "API monolítica para gestão de usuários - E-Clas",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
