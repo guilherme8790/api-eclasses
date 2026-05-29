@@ -3,104 +3,110 @@ const app = express();
 
 app.use(express.json());
 
-// Array simulando o banco de dados
-let users = [
-  {
-    id: 1,
-    name: "João Silva",
-    email: "joao.silva@email.com",
-    idade: 28
-  },
-  {
-    id: 2,
-    name: "Maria Oliveira",
-    email: "maria.oliveira@email.com",
-    idade: 34
-  }
+// Permite o front-end (arquivo local) acessar a API
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.sendStatus(200);
+  next();
+});
+
+// ==================== BANCO DE DADOS (arrays) ====================
+
+let jogos = [
+  { id: 1, nome: "CS2", genero: "FPS" },
+  { id: 2, nome: "FIFA 25", genero: "Esporte" },
+  { id: 3, nome: "Valorant", genero: "FPS" }
 ];
 
-const getNextId = () => {
-  return users.length > 0 ? Math.max(...users.map(user => user.id)) + 1 : 1;
-};
+let times = [
+  { id: 1, nome: "Ninjas da Noite", cor: "#6366f1" },
+  { id: 2, nome: "Dragões de Fogo", cor: "#ef4444" }
+];
 
-// ==================== ROTAS ====================
+let competidores = [
+  { id: 1, nome: "Carlos Souza", apelido: "CarlosX", idTime: 1 },
+  { id: 2, nome: "Ana Lima", apelido: "AnaFire", idTime: 2 }
+];
 
-// GET raiz - Mensagem de boas-vindas
-app.get('/', (req, res) => {
-  res.send(`Bem vindo à API E-Clas! Existem ${users.length} usuários cadastrados.`);
+let confrontos = [
+  { id: 1, idJogo: 1, idTime1: 1, idTime2: 2, data: "2026-06-10T14:00", placar1: 0, placar2: 0, situacao: "agendado" }
+];
+
+const proximoId = (array) => array.length > 0 ? Math.max(...array.map(item => item.id)) + 1 : 1;
+
+// ==================== ROTAS: JOGOS ====================
+
+app.get('/jogos', (req, res) => res.json(jogos));
+
+app.post('/jogos', (req, res) => {
+  const { nome, genero } = req.body;
+  const novoJogo = { id: proximoId(jogos), nome, genero };
+  jogos.push(novoJogo);
+  res.status(201).json(novoJogo);
 });
 
-// GET todos os usuários
-app.get('/users', (req, res) => {
-  res.json(users);
+// ==================== ROTAS: TIMES ====================
+
+app.get('/times', (req, res) => res.json(times));
+
+app.post('/times', (req, res) => {
+  const { nome, cor } = req.body;
+  const novoTime = { id: proximoId(times), nome, cor };
+  times.push(novoTime);
+  res.status(201).json(novoTime);
 });
 
-// GET usuário por nome (busca parcial, case insensitive)
-app.get('/users/:name', (req, res) => {
-  const nomeBusca = req.params.name.toLowerCase();
-  const usuariosEncontrados = users.filter(user => 
-    user.name.toLowerCase().includes(nomeBusca)
-  );
+// ==================== ROTAS: COMPETIDORES ====================
 
-  if (usuariosEncontrados.length === 0) {
-    return res.status(404).json({ mensagem: "Nenhum usuário encontrado com esse nome." });
-  }
+app.get('/competidores', (req, res) => res.json(competidores));
 
-  res.json(usuariosEncontrados);
+app.post('/competidores', (req, res) => {
+  const { nome, apelido, idTime } = req.body;
+  const novoCompetidor = { id: proximoId(competidores), nome, apelido, idTime: Number(idTime) };
+  competidores.push(novoCompetidor);
+  res.status(201).json(novoCompetidor);
 });
 
-// POST criar usuário
-app.post('/users', (req, res) => {
-  const { name, email, idade } = req.body;
+// ==================== ROTAS: CONFRONTOS ====================
 
-  if (!name || !email) {
-    return res.status(400).json({ mensagem: "Nome e email são obrigatórios." });
-  }
+app.get('/confrontos', (req, res) => res.json(confrontos));
 
-  const novoUsuario = {
-    id: getNextId(),
-    name,
-    email,
-    idade: idade || null
+app.post('/confrontos', (req, res) => {
+  const { idJogo, idTime1, idTime2, data, placar1, placar2, situacao } = req.body;
+  const novoConfronto = {
+    id: proximoId(confrontos),
+    idJogo: Number(idJogo),
+    idTime1: Number(idTime1),
+    idTime2: Number(idTime2),
+    data,
+    placar1: Number(placar1) || 0,
+    placar2: Number(placar2) || 0,
+    situacao: situacao || 'agendado'
   };
-
-  users.push(novoUsuario);
-  res.status(201).json(novoUsuario);
+  confrontos.push(novoConfronto);
+  res.status(201).json(novoConfronto);
 });
 
-// PUT atualizar usuário por ID
-app.put('/users/:id', (req, res) => {
+app.put('/confrontos/:id', (req, res) => {
   const id = parseInt(req.params.id);
-  const { name, email, idade } = req.body;
-
-  const index = users.findIndex(user => user.id === id);
-
-  if (index === -1) {
-    return res.status(404).json({ mensagem: "Usuário não encontrado." });
-  }
-
-  if (name) users[index].name = name;
-  if (email) users[index].email = email;
-  if (idade !== undefined) users[index].idade = idade;
-
-  res.json(users[index]);
+  const index = confrontos.findIndex(c => c.id === id);
+  const { placar1, placar2, situacao } = req.body;
+  confrontos[index].placar1 = Number(placar1);
+  confrontos[index].placar2 = Number(placar2);
+  confrontos[index].situacao = situacao;
+  res.json(confrontos[index]);
 });
 
-// DELETE deletar usuário por ID
-app.delete('/users/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  const index = users.findIndex(user => user.id === id);
+// ==================== ROTA RAIZ ====================
 
-  if (index === -1) {
-    return res.status(404).json({ mensagem: "Usuário não encontrado." });
-  }
-
-  users.splice(index, 1);
-  res.json({ mensagem: "Usuário deletado com sucesso!" });
+app.get('/', (req, res) => {
+  res.send(`Bem-vindo à API E-Classes! Times: ${times.length} | Jogos: ${jogos.length} | Competidores: ${competidores.length} | Confrontos: ${confrontos.length}`);
 });
 
 // ==================== SERVIDOR ====================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Servidor E-Clas rodando em http://localhost:${PORT}`);
+  console.log(`Servidor E-Classes rodando em http://localhost:${PORT}`);
 });
